@@ -710,6 +710,9 @@ class JobSubmission(object):
         
         lawrencium
         -partitions
+        ---lr5-free --> partition=lr5, qos=condo_ceder, account=lr_ceder
+        ---lr5-pc --> partition=lr5, qos=lr_normal, account=pc_ceder
+        ---lr5-ac --> partition=lr5, qos=lr_normal, account=ac_ceder
         ---qos=condo_ceder
         ---time=72:00:00
         ---partition=lr5
@@ -787,7 +790,19 @@ class JobSubmission(object):
             else:
                 qos = 'savio_normal'
         if machine == 'lrc':
-            qos = 'condo_ceder'
+            if not partition or (partition == 'lr5-free') or (partition == 'lr5'):
+                account = 'lr_ceder'
+                qos = 'condo_ceder'
+                partition = 'lr5'
+            elif partition == 'lr5-pc':
+                account = 'pc_ceder'
+                qos = 'lr_normal'
+                partition = 'lr5'
+            elif partition == 'lr5-ac':
+                account = 'ac_ceder'
+                qos = 'lr_normal'
+                partition = 'lr5'
+                
         slurm_options = {'account' : account,
                          'constraint' : constraint if constraint != 'hsw' else 'haswell',
                          'error' : err_file,
@@ -987,6 +1002,18 @@ class JobSubmission(object):
         elif xc == 'pbeu':
             src_dir = calc_dirs['pbe'][calc]['dir']
             files = base_files
+        elif xc == 'scan_sppbe':
+            src_dir = calc_dirs['scan']['sp']['dir']
+            files = ['KPOINTS', 'POSCAR', 'POTCAR']
+            incar_src_dir = calc_dirs['pbe']['sp']['dir']
+            incar_dst_dir = calc_dirs[xc][calc]['dir']
+            incar_src = os.path.join(incar_src_dir, 'INCAR')
+            incar_dst = os.path.join(incar_dst_dir, 'INCAR')
+            if os.path.exists(incar_src):
+                copyfile(incar_src, incar_dst)
+        elif xc == 'scan_sphse':
+            src_dir = calc_dirs['scan_sppbe']['opt']['dir']
+            files = continue_files + base_files
         dst_dir = calc_dirs[xc][calc]['dir']
         for f in files:
             src = os.path.join(src_dir, f)
@@ -1041,6 +1068,10 @@ class JobSubmission(object):
                 xcs = [xc for xc in xcs if xc != 'pbeu']
             for xc in xcs:
                 for calc in calcs:
+                    if (xc == 'scan_sphse') and (calc == 'sp'):
+                        continue
+                    if (xc == 'scan_sppbe') and (calc == 'sp'):
+                        continue
                     convergence = calc_dirs[xc][calc]['convergence']
                     calc_dir = calc_dirs[xc][calc]['dir']
                     if calc == 'resp':
@@ -1085,6 +1116,21 @@ class JobSubmission(object):
                                                       'LDAUJ' : ' '.join([str(0) for v in ordered_els]),
                                                       'LDAUL' : ' '.join([str(U[el]['L']) for el in ordered_els]),
                                                       'LDAUU' : ' '.join([str(U[el]['U']) for el in ordered_els])})
+                        elif xc == 'scan_sppbe':
+                            obj.modify_incar(enforce={'GGA' : 'PE',
+                                                      'ALGO' : 'All'})
+                        elif xc == 'scan_sphse':
+                            obj.modify_incar(enforce={'GGA' : 'PE',
+                                                      'LHFCALC' : 'TRUE',
+                                                      'ALGO' : 'Damped',
+                                                      'TIME' : 0.1,
+                                                      'HFSCREEN' : 0.2,
+                                                      'IBRION' : -1,
+                                                      'NSW' : 0,
+                                                      'NELM' : 1000,
+                                                      'KPAR' : 2,
+                                                      **sp_params})
+                            
                         elif calc == 'sp':
                             obj = VASPSetUp(calc_dir)
                             obj.modify_incar(enforce={'IBRION' : -1,
@@ -1115,6 +1161,10 @@ class JobSubmission(object):
                         elif xc == 'scan':
                             f.write('\ncp %s %s' % (os.path.join(calc_dirs['pbe']['opt']['dir'], 'WAVECAR'), os.path.join(calc_dir, 'WAVECAR')))
                             f.write('\ncp %s %s' % (os.path.join(calc_dirs['pbe']['opt']['dir'], 'CONTCAR'), os.path.join(calc_dir, 'POSCAR')))
+                        elif xc == 'scan_sphse':
+                            f.write('\ncp %s %s' % (os.path.join(calc_dirs['scan_sppbe']['opt']['dir'], 'WAVECAR'), os.path.join(calc_dir, 'WAVECAR')))
+                        elif xc == 'scan_sppbe':
+                            f.write('\ncp %s %s' % (os.path.join(calc_dirs['scan']['sp']['dir'], 'CONTCAR'), os.path.join(calc_dir, 'POSCAR')))
                         f.write('\ncd %s' % calc_dir)
                         f.write(vasp_command)
                         f.write('\ncd %s\n' % self.launch_dir)
@@ -1274,6 +1324,8 @@ class ErrorHandler(object):
             enforce['ISYM'] = -1
         if 'zbrent' in errors:
             enforce['IBRION'] = 1
+        if 'brmix' in errors:
+            enforce['IMIX'] = 1
         vsu.modify_incar(enforce=enforce)
 
 class DiffusionSetUp(object):
