@@ -508,7 +508,7 @@ class VASPSetUp(object):
         """
         return nsites(self.els_to_amts)                      
                 
-    def potcar(self, els_in_poscar=False, specific_pots=False, machine='eagle', src='gga_54', MP=False):
+    def potcar(self, els_in_poscar=False, specific_pots=False, machine='eagle', src='gga_52', MP=False):
         """
         Args:
             els_in_poscar (list or False) - ordered list of elements (str) in POSCAR; if FALSE, read POSCAR
@@ -529,7 +529,7 @@ class VASPSetUp(object):
         elif machine == 'cori':
             path_to_pots = '/global/homes/c/cbartel/bin/pp'
         elif machine in ['savio', 'lrc']:
-            path_to_pots = '/global/home/users/cbartel/bin/pp'
+            path_to_pots = '/global/home/users/yychoi94/VASP_psps/MY_PSP'
         if src == 'gga_54':
             pot_dir = 'POT_GGA_PAW_PBE_54'
         elif src == 'gga_52':
@@ -811,14 +811,14 @@ class JobSubmission(object):
         elif machine == 'cori':
             home_dir = '/global/homes/c/cbartel'
         elif machine == 'savio':
-            home_dir = '/global/home/users/cbartel'
+            home_dir = '/global/home/users/yychoi94'
         elif machine == 'bridges':
             home_dir = '/home/cbartel'
         elif machine == 'lrc':
             home_dir = '/global/home/users/cbartel'
         else:
             raise ValueError
-        vasp_dir = os.path.join(home_dir, 'bin', 'vasp')
+        vasp_dir = os.path.join(home_dir, 'bin', 'vasp.5.4.4_vtst178_with_DnoAugXCMeta')
         return vasp_dir
 
     @property
@@ -873,7 +873,7 @@ class JobSubmission(object):
         if machine == 'eagle':
             home_dir = '/home/cbartel'
         elif machine == 'savio':
-            home_dir = '/global/home/users/cbartel'
+            home_dir = '/global/home/users/yychoi94'
         elif machine == 'bridges':
             home_dir = '/home/cbartel'
         elif machine == 'cori':
@@ -896,7 +896,7 @@ class JobSubmission(object):
         if machine == 'eagle':
             home_dir = '/home/cbartel'
         elif machine == 'savio':
-            home_dir = '/global/home/users/cbartel'
+            home_dir = '/global/home/users/yychoi94'
         elif machine == 'bridges':
             home_dir = '/home/cbartel'
         elif machine == 'cori':
